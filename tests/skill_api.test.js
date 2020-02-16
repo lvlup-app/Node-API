@@ -156,7 +156,7 @@ describe('Modifying Skills', () => {
       .expect(204)
 
     const skillAfterDeletion = await Skill.find({})
-    expect(skillsAfterDeletion.length).toBe(skills.length - 1)
+    expect(skillAfterDeletion.length).toBe(skills.length - 1)
     
     const skillNames = skillsAfterDeletion.map(skill => skill.toJSON().name)
     expect(skillNames).not.toContain(skill.name)
