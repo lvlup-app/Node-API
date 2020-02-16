@@ -10,7 +10,7 @@ const initialSkills = [
     name: "JavaScript",
     max_lvl: 20,
     curr_lvl: 8,
-    curr_xp: 30,
+    curr_xp: 0,
     __v: 0
   },
   {
@@ -18,7 +18,7 @@ const initialSkills = [
     name: "Java",
     max_lvl: 20,
     curr_lvl: 2,
-    curr_xp: 0,
+    curr_xp: 30,
     __v: 0
   },
   {
@@ -42,23 +42,150 @@ beforeEach(async () => {
   await Promise.all(promiseArray)
 })
 
-// return type is JSON
+describe('Returning Skills', () => {
 
-// all skills are returned
+  test('Skills are returned as JSON', async () => {
+    api
+      .get('/skills')
+      .expect(200)
+      .expect('Content-Type', /application\/json/)
+  })
 
-// unique identifier property of a blog is named id
+  test('Unique identifier property of a skill is named id', async () => {
+    const response = await api.get('/skills')
+    expect(response.body[0].id).toBeDefined()
+  })
+  
+  test('All skills are returned', async () => {
+    const response = await api.get('/skills')
+    expect(response.body.length).toBe(initialSkills.length)
+  })
 
-// valid skill can be added
+  test('A single skill is returned', async () => {
+    const response = await api.get(`/skills/${initialSkills[0]._id}`)
+    /* response.expect(200)
+    response.expect('Content-Type', /application\/json/) */
+    expect(response.body.id).toEqual(initialSkills[0]._id)
+  })
 
-// if curr_xp missing, defaults to 0
+})
 
-// if curr_lvl is missing, defaults to 0
+describe('Adding Skills', () => {
 
-// if name or mx_lvl are missing, status code 400
+  test('A valid skill can be added', async () => {
+    const newSkill = {
+      name: "Cooking",
+      curr_lvl: "5",
+      max_lvl: 20,
+      curr_xp: 70
+    }
 
-// skill gets deleted
+    await api
+      .post('/skills')
+      .send(newSkill)
+      .expect(201)
+      .expect('Content-Type', /application\/json/)
 
-// skill gets updated
+    const response = await api.get('/skills')
+    const skillNames = response.body.map((skill) => skill.name)
+
+    expect(reponse.body.length).toBe(initialSkills.length + 1)
+    expect(skillNames).toContain(newSkill.name)
+  })
+
+  test('If current XP is missing, it defaults to 0', async () => {
+    const newSkill = {
+      name: "Cooking",
+      curr_lvl: "5",
+      max_lvl: 20
+    }
+
+    const response = await api.post('/skills').send(newSkill)
+    expect(response.body.curr_xp).toBeDefined()
+    expect(response.body.curr_xp).toEqual(0)
+  })
+
+  test('If current level is missing, it defaults to 0', async () => {
+    const newSkill = {
+      name: "Cooking",
+      max_lvl: 20,
+      curr_xp: 70
+    }
+
+    const response = await api.post('/skills').send(newSkill)
+    expect(response.body.curr_lvl).toBeDefined()
+    expect(response.body.curr_lvl).toEqual(0)
+  })
+
+  test('Missing skill name results in status code 400', async () => {
+    const newSkill = {
+      curr_lvl: "5",
+      max_lvl: 20,
+      curr_xp: 70
+    }
+
+    await api
+      .post('/skills')
+      .send(newSkill)
+      .expect(400)
+  })
+
+  test('Missing max level results in status code 400', async () => {
+    const newSkill = {
+      name: "Cooking",
+      curr_lvl: "5",
+      curr_xp: 70
+    }
+
+    await api
+      .post('/skills')
+      .send(newSkill)
+      .expect(400)
+  })
+
+})
+
+describe('Modifying Skills', () => {
+
+  test('Skill gets succesfully deleted', async () => {
+    const skills = await Skill.find({})
+    const skill = skills[0].toJSON()
+
+    await api
+      .delete(`/skills/${skill.id}`)
+      .expect(204)
+
+    const skillAfterDeletion = await Skill.find({})
+    expect(skillsAfterDeletion.length).toBe(skills.length - 1)
+    
+    const skillNames = skillsAfterDeletion.map(skill => skill.toJSON().name)
+    expect(skillNames).not.toContain(skill.name)
+  })
+
+  test('Skill gets succesfully updated', async () => {
+    const skills = await Skill.find({})
+    let skill = skills[0].toJSON()
+    skill.curr_xp = 40
+
+    await api
+      .put(`/skills/${skill.id}`)
+      .send(skill)
+
+    const updatedSkills = await Skill.find({})
+    expect(updatedSkills[0].toJSON().curr_xp).toBe(40)
+  })
+})
+
+afterAll(() => {
+  mongoose.connection.close()
+})
 
 
-// battles are correctly associated
+/* TO DO 
+* type and empty string restrictions
+* test for custom error messages?
+* battles are correctly associated
+* user access
+
+* reconsider use of const vs let....
+*/
