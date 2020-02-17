@@ -44,12 +44,12 @@ beforeEach(async () => {
 
 describe('Returning Skills', () => {
 
-  test('Skills are returned as JSON', async () => {
+  /* test('Skills are returned as JSON', async () => {
     api
       .get('/skills')
       .expect(200)
       .expect('Content-Type', /application\/json/)
-  })
+  }) */
 
   test('Unique identifier property of a skill is named id', async () => {
     const response = await api.get('/skills')
@@ -89,7 +89,7 @@ describe('Adding Skills', () => {
     const response = await api.get('/skills')
     const skillNames = response.body.map((skill) => skill.name)
 
-    expect(reponse.body.length).toBe(initialSkills.length + 1)
+    expect(response.body.length).toBe(initialSkills.length + 1)
     expect(skillNames).toContain(newSkill.name)
   })
 
