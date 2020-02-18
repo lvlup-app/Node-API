@@ -155,8 +155,8 @@ describe('Modifying Skills', () => {
       .delete(`/skills/${skill.id}`)
       .expect(204)
 
-    const skillAfterDeletion = await Skill.find({})
-    expect(skillAfterDeletion.length).toBe(skills.length - 1)
+    const skillsAfterDeletion = await Skill.find({})
+    expect(skillsAfterDeletion.length).toBe(skills.length - 1)
     
     const skillNames = skillsAfterDeletion.map(skill => skill.toJSON().name)
     expect(skillNames).not.toContain(skill.name)
@@ -183,7 +183,7 @@ afterAll(() => {
 
 /* TO DO 
 * type and empty string restrictions
-* test for custom error messages?
+* test for custom error messages? --> write error handler middleware
 * battles are correctly associated
 * user access
 
