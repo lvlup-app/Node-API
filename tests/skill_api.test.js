@@ -62,10 +62,11 @@ describe('Returning Skills', () => {
   })
 
   test('A single skill is returned', async () => {
-    const response = await api.get(`/skills/${initialSkills[0]._id}`)
-    /* response.expect(200)
-    response.expect('Content-Type', /application\/json/) */
-    expect(response.body.id).toEqual(initialSkills[0]._id)
+    await api
+      .get(`/skills/${initialSkills[0]._id}`)
+      .expect(200)
+      .expect('Content-Type', /application\/json/)
+      .expect((res) => { res.body.id = initialSkills[0]._id })
   })
 
 })

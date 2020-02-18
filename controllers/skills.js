@@ -28,4 +28,21 @@ skillsRouter.post('/', async (request, response) => {
   }
 })
 
+skillsRouter.delete('/:id', async (request, response) => {
+  await Skill.findByIdAndRemove(request.params.id)
+  response.status(204).end()
+})
+
+skillsRouter.put('/:id', async (request, response) => {
+  try{
+    const skill = request.body
+    const updatedSkill = await Skill.findByIdAndUpdate(request.params.id, skill, {new: true})
+    response.json(updatedSkill)
+  } catch(error){
+    error.name === 'ValidationError'
+      ? response.status(400).json({ error: error.message })
+      : console.log(error)
+  }
+})
+
 module.exports = skillsRouter
