@@ -1,5 +1,6 @@
 const skillsRouter = require('express').Router()
 const Skill = require('../models/skill')
+const Battle = require('../models/battle')
 
 skillsRouter.get('/', async (request, response) => {
   const skills = await Skill.find({})
@@ -29,6 +30,10 @@ skillsRouter.post('/', async (request, response) => {
 })
 
 skillsRouter.delete('/:id', async (request, response) => {
+  const battles = await Battle.find({skill: request.params.id})
+  let promiseArray = battles.map(async (b) => await b.remove())
+  await Promise.all(promiseArray)
+
   await Skill.findByIdAndRemove(request.params.id)
   response.status(204).end()
 })

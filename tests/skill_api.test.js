@@ -3,6 +3,7 @@ const supertest = require('supertest')
 const app = require('../app')
 const api = supertest(app)
 const Skill = require('../models/skill')
+const Battle = require('../models/battle')
 
 const initialSkills = [
   {
@@ -11,7 +12,11 @@ const initialSkills = [
     max_lvl: 20,
     curr_lvl: 8,
     curr_xp: 0,
-    __v: 0
+    __v: 0,
+    battles: [
+      "5f4c614a842d0ee0f388a0b0",
+      "5f4c614a842d0ee0f388a0b1"
+    ]
   },
   {
     _id: "5a422aa71b54a676234d17f8",
@@ -31,6 +36,32 @@ const initialSkills = [
   }
 ]
 
+const battles = [
+  {
+    _id: "5f4c614a842d0ee0f388a0b0",
+    description: "Bug hunting",
+    xp: 20,
+    skill: "5a422a851b54a676234d17f7"
+  },
+  {
+    _id: "5f4c614a842d0ee0f388a0b1",
+    description: "Coding challenge",
+    xp: 30,
+    skill: "5a422a851b54a676234d17f7"
+  }
+]
+
+beforeAll(async () => {
+  await Battle.deleteMany({})
+
+  let promiseArray = battles.map(async (battle) => { 
+    let newBattle = new Battle(battle)
+    await newBattle.save()
+  })
+
+  await Promise.all(promiseArray)
+})
+
 beforeEach(async () => {
   await Skill.deleteMany({})
 
@@ -43,13 +74,6 @@ beforeEach(async () => {
 })
 
 describe('Returning Skills', () => {
-
-  /* test('Skills are returned as JSON', async () => {
-    api
-      .get('/skills')
-      .expect(200)
-      .expect('Content-Type', /application\/json/)
-  }) */
 
   test('Unique identifier property of a skill is named id', async () => {
     const response = await api.get('/skills')
@@ -167,6 +191,16 @@ describe('Modifying Skills', () => {
     
     const skillNames = skillsAfterDeletion.map(skill => skill.toJSON().name)
     expect(skillNames).not.toContain(skill.name)
+  })
+
+  test('When skill is deleted, all referenced battles are deleted', async () => {
+    const skills = await Skill.find({})
+    const skill = skills[0].toJSON()
+
+    await api.delete(`/skills/${skill.id}`)
+
+    const battlesAfterDelete = await Battle.find({})
+    expect(battlesAfterDelete.length).toBe(0)
   })
 
   test('Skill gets succesfully updated', async () => {
