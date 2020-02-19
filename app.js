@@ -10,7 +10,8 @@ const battlesRouter = require('./controllers/battles')
 mongoose
   .connect(config.MONGO_URL, {
     useNewUrlParser: true,
-    useUnifiedTopology: true
+    useUnifiedTopology: true,
+    useFindAndModify: false
   })
   .catch((error) => console.log('error connecting to MongoDB:', error.message))
 

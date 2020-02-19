@@ -11,7 +11,12 @@ const skill = {
   max_lvl: 20,
   curr_lvl: 8,
   curr_xp: 0,
-  __v: 0
+  __v: 0,
+  battles: [
+    "5e4c614a842d0ee0f388a0b0",
+    "5e4c614a842d0ee0f388a0b1",
+    "5e4c614a842d0ee0f388a0b2"
+  ]
 }
 
 const initialBattles = [
@@ -94,12 +99,37 @@ describe('Adding Battles', () => {
       .expect(201)
       .expect('Content-Type', /application\/json/)
       .expect(res => { 
-        res.body.skill = skill._id
         res.body.description = newBattle.description
       })
 
     const response = await api.get(basUrl)
     expect(response.body.length).toBe(initialBattles.length + 1)
+  })
+
+  test('Battle is referencing right skill', async () => {
+    const newBattle = {
+      description: "Building a project",
+      xp: 80
+    }
+
+    await api
+      .post(basUrl)
+      .send(newBattle)
+      .expect(res => { res.body.skill = skill._id })
+  })
+
+  test('Referenced skill is listing new battle', async () => {
+    const newBattle = {
+      description: "Bug hunting",
+      xp: 30,
+    }
+
+    const response = await api.post(basUrl).send(newBattle)
+
+    const updatedSkill = await Skill.findOne({_id: skill._id})
+    // !
+    const battleIds = updatedSkill.battles.map(battle => String(battle))
+    expect(battleIds).toContain(response.body.id)
   })
 
   test('Missing description results in status code 400', async () => {
@@ -143,9 +173,17 @@ describe('Deleting Battles', () => {
     expect(ids).not.toContain(battle.id)
   })
 
-  /* test('Battle reference in associated skill gets deleted', async () => {
+  test('Battle reference in associated skill gets deleted', async () => {
+    const battles = await Battle.find({})
+    const battle = battles[0].toJSON()
 
-  }) */
+    await api.delete(`${basUrl}/${battle.id}`)
+
+    const updatedSkill = await Skill.findOne({_id: battle.skill})
+    const battleIds = updatedSkill.battles.map(b => String(b))
+
+    expect(battleIds).not.toContain(battle.id)
+  })
 
 })
 
@@ -153,4 +191,4 @@ afterAll(() => {
   mongoose.connection.close()
 })
 
-// refs to skill in creation and deletion
+// populate?

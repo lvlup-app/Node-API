@@ -61,6 +61,12 @@ describe('Returning Skills', () => {
     expect(response.body.length).toBe(initialSkills.length)
   })
 
+  test('Skill has battles array', async () => {
+    const response = await api.get('/skills')
+    expect(response.body[0].battles).toBeDefined()
+    expect(response.body[0].battles).toEqual([])
+  })
+
   test('A single skill is returned', async () => {
     await api
       .get(`/skills/${initialSkills[0]._id}`)
@@ -183,8 +189,8 @@ afterAll(() => {
 
 
 /* TO DO 
+* battles get deleted after skill deletion!
 * type and empty string restrictions
-* contains battles array
 * test for custom error messages? --> write error handler middleware
 
 * user access
