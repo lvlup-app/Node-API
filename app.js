@@ -5,6 +5,7 @@ const mongoose = require('mongoose')
 const cors = require('cors')
 const bodyParser = require('body-parser')
 const skillsRouter = require('./controllers/skills')
+const battlesRouter = require('./controllers/battles')
 
 mongoose
   .connect(config.MONGO_URL, {
@@ -16,5 +17,6 @@ mongoose
 app.use(cors())
 app.use(bodyParser.json())
 app.use('/skills', skillsRouter)
+app.use('/skills', battlesRouter)
 
 module.exports = app

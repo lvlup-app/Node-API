@@ -184,9 +184,8 @@ afterAll(() => {
 
 /* TO DO 
 * type and empty string restrictions
+* contains battles array
 * test for custom error messages? --> write error handler middleware
-* battles are correctly associated
-* user access
 
-* reconsider use of const vs let....
+* user access
 */
