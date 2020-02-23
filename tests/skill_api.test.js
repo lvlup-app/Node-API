@@ -85,12 +85,6 @@ describe('Returning Skills', () => {
     expect(response.body.length).toBe(initialSkills.length)
   })
 
-  test('Skill has battles array', async () => {
-    const response = await api.get('/skills')
-    expect(response.body[0].battles).toBeDefined()
-    expect(response.body[0].battles).toEqual([])
-  })
-
   test('A single skill is returned', async () => {
     await api
       .get(`/skills/${initialSkills[0]._id}`)
@@ -122,6 +116,20 @@ describe('Adding Skills', () => {
 
     expect(response.body.length).toBe(initialSkills.length + 1)
     expect(skillNames).toContain(newSkill.name)
+  })
+
+  test('Created skill has battles array', async () => {
+    const newSkill = {
+      name: "Cooking",
+      curr_lvl: "5",
+      max_lvl: 20,
+      curr_xp: 70
+    }
+
+    await api
+      .post('/skills')
+      .send(newSkill)
+      .expect(res => res.body.battles = [])
   })
 
   test('If current XP is missing, it defaults to 0', async () => {
