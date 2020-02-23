@@ -231,7 +231,6 @@ afterAll(() => {
 
 
 /* TO DO 
-* battles get deleted after skill deletion!
 * type and empty string restrictions
 * test for custom error messages? --> write error handler middleware
 

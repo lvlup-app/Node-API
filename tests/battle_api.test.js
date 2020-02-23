@@ -126,7 +126,7 @@ describe('Adding Battles', () => {
 
     const response = await api.post(basUrl).send(newBattle)
 
-    const updatedSkill = await Skill.findOne({_id: skill._id})
+    const updatedSkill = await Skill.findById(skill._id)
     // !
     const battleIds = updatedSkill.battles.map(battle => String(battle))
     expect(battleIds).toContain(response.body.id)
@@ -179,7 +179,7 @@ describe('Deleting Battles', () => {
 
     await api.delete(`${basUrl}/${battle.id}`)
 
-    const updatedSkill = await Skill.findOne({_id: battle.skill})
+    const updatedSkill = await Skill.findById(battle.skill)
     const battleIds = updatedSkill.battles.map(b => String(b))
 
     expect(battleIds).not.toContain(battle.id)
