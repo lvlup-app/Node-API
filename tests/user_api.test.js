@@ -31,7 +31,7 @@ test('Valid user gets succesfully created', async () => {
   await api
     .post(url)
     .send(newUser)
-    .expect(200)
+    .expect(201)
     .expect('Content-Type', /application\/json/)
 
   const usersAtEnd = await usersInDb()
@@ -57,7 +57,7 @@ test('Creation fails when username is already taken', async () => {
 
   // expect(result.body.error).toContain('`username` to be unique')
 
-  const usersAtEnd = await helper.usersInDb()
+  const usersAtEnd = await usersInDb()
   expect(usersAtEnd.length).toBe(usersAtStart.length)
 })
 
@@ -113,7 +113,7 @@ test('Creation fails if username or password is shorter than 3 characters', asyn
     .expect(400)
     .expect((res) => res.body.error.includes("password must be at least 3 characters"))
 
-  const usersAtEnd = usersInDb()
+  const usersAtEnd = await usersInDb()
   expect(usersAtEnd.length).toBe(usersAtStart.length)
 })
 
