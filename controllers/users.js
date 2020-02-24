@@ -34,9 +34,7 @@ usersRouter.post('/', async (request, response) => {
 module.exports = usersRouter
 
 /*
-  * User schema & refs
-  * Password hashing -> bcrypt
-  * mongoose-unique-validator
+  * Refs
   * mongoose populate()
   * Token auth -> jsonwebtoken
   * Limiting creating skills (battles) to logged in users
