@@ -81,7 +81,7 @@ describe('Returning Battles', () => {
       .get(`/skills/${skill._id}/battles/${initialBattles[0]._id}`)
       .expect(200)
       .expect('Content-Type', /application\/json/)
-      .expect((res) => { res.body.id = initialBattles[0]._id })
+      .then((res) => expect(res.body.id).toEqual(initialBattles[0]._id))
   })
 })
 
@@ -98,9 +98,7 @@ describe('Adding Battles', () => {
       .send(newBattle)
       .expect(201)
       .expect('Content-Type', /application\/json/)
-      .expect(res => { 
-        res.body.description = newBattle.description
-      })
+      .then(res => expect(res.body.description).toEqual(newBattle.description))
 
     const response = await api.get(basUrl)
     expect(response.body.length).toBe(initialBattles.length + 1)
@@ -115,7 +113,7 @@ describe('Adding Battles', () => {
     await api
       .post(basUrl)
       .send(newBattle)
-      .expect(res => { res.body.skill = skill._id })
+      .then(res => expect(res.body.skill).toEqual(skill._id))
   })
 
   test('Referenced skill is listing new battle', async () => {

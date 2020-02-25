@@ -8,7 +8,7 @@ battlesRouter.get('/:skillId/battles', async (request, response) => {
 })
 
 battlesRouter.get('/:skillId/battles/:id', async (request, response) => {
-  const battle = await Battle.find({_id: request.params.id})
+  const battle = await Battle.findById(request.params.id)
   response.json(battle)
 })
 

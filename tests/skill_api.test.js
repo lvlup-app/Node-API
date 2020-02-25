@@ -4,6 +4,7 @@ const app = require('../app')
 const api = supertest(app)
 const Skill = require('../models/skill')
 const Battle = require('../models/battle')
+const User = require('../models/user')
 
 const initialSkills = [
   {
@@ -51,6 +52,13 @@ const battles = [
   }
 ]
 
+// How to "correctly" add user to DB with password hash?
+const user = {
+  _id: "5b52d425d2eb641aae880f50",
+  username: "Peach",
+  password: "Itsame"
+}
+
 beforeAll(async () => {
   await Battle.deleteMany({})
 
@@ -60,6 +68,10 @@ beforeAll(async () => {
   })
 
   await Promise.all(promiseArray)
+
+  await User.deleteMany({})
+  const newUser = new User(user)
+  newUser.save()
 })
 
 beforeEach(async () => {
@@ -90,7 +102,7 @@ describe('Returning Skills', () => {
       .get(`/skills/${initialSkills[0]._id}`)
       .expect(200)
       .expect('Content-Type', /application\/json/)
-      .expect((res) => { res.body.id = initialSkills[0]._id })
+      .then((res) => expect(res.body.id).toEqual(initialSkills[0]._id ))
   })
 
 })
@@ -129,7 +141,7 @@ describe('Adding Skills', () => {
     await api
       .post('/skills')
       .send(newSkill)
-      .expect(res => res.body.battles = [])
+      .then(res => expect(res.body.battles).toEqual([]))
   })
 
   test('If current XP is missing, it defaults to 0', async () => {
