@@ -16,7 +16,11 @@ const skillSchema = new mongoose.Schema({
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Battle'
     }
-  ]
+  ],
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }
 })
 
 skillSchema.set('toJSON', {
