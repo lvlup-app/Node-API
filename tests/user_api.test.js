@@ -3,8 +3,29 @@ const supertest = require('supertest')
 const app = require('../app')
 const api = supertest(app)
 const User = require('../models/user')
+const Skill = require('../models/skill')
+const Battle = require('../models/battle')
 
 const url = '/users'
+
+const user = {
+  _id: '5e579c785e943238e38d4b05',
+  username: 'Mario', 
+  password: 'peachyPeach' 
+}
+
+const skill = {
+  _id: '5b579c785e943238e38d4b01',
+  name: 'Jumping',
+  max_lvl: 25,
+  user: '5e579c785e943238e38d4b05'
+}
+
+const battle = {
+  description: 'Jump on blocks',
+  xp: 10,
+  skill: '5b579c785e943238e38d4b01'
+}
 
 const usersInDb = async () => {
   const users = await User.find({})
@@ -13,11 +34,16 @@ const usersInDb = async () => {
 
 beforeEach(async () => {
   await User.deleteMany({})
-  const user = new User({
-    username: 'Mario', 
-    password: 'peachyPeach' 
-  })
-  await user.save()
+  const newUser = new User(user)
+  await newUser.save()
+
+  await Skill.deleteMany({})
+  const newSkill = new Skill(skill)
+  await newSkill.save()
+
+  await Battle.deleteMany({})
+  const newBattle = new Battle(battle)
+  await newBattle.save()
 })
 
 describe('Adding Users', () => {
@@ -133,31 +159,36 @@ describe('Adding Users', () => {
 
 })
 
-/* describe('Deleting User', () => {
+describe('Deleting User', () => {
   test('User gets succesfully deleted', async () => {
     const usersAtStart = await usersInDb()
 
     await api
-      .delete(`${url}/:id`)
+      .delete(`${url}/${usersAtStart[0].id}`)
       .expect(204)
 
     const usersAfterDeletion = await usersInDb()
-    expect(usersAfterDeletion.length).toBe(usersAtStart - 1)
+    expect(usersAfterDeletion.length).toBe(usersAtStart.length - 1)
   })
   
-  test('When user is deleted, associated skills get deleted', async () => {
-  
+  test('When user is deleted, associated skills and battles get deleted', async () => {
+    const users = await usersInDb()
+
+    await api.delete(`${url}/${users[0].id}`)
+
+    const skillsAfterDelete = await Skill.find({user: users[0].id})
+    expect(skillsAfterDelete.length).toBe(0)
+
+    const battles = await Battle.find({skill: skill._id})
+    expect(battles.length).toBe(0)
   })
-}) */
+})
 
 afterAll(() => {
   mongoose.connection.close()
 })
 
 /*
- * User deletion
-  - skills & battles get deleted after user deletion
-  - skills are correctly referenced both ways
  * Username only consists of permitted characters
  * Error messages
 

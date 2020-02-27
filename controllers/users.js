@@ -2,6 +2,8 @@ const usersRouter = require('express').Router()
 const User = require('../models/user')
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
+const Skill = require('../models/skill')
+const Battle = require('../models/battle')
 
 usersRouter.post('/', async (request, response) => {
   try{
@@ -32,6 +34,25 @@ usersRouter.post('/', async (request, response) => {
   }
 })
 
+/* Helper*/
+const deleteBattles = async (skillId) => {
+  const battles = await Battle.find({skill: skillId})
+  let promiseArray = battles.map(async (b) => await b.remove())
+  await Promise.all(promiseArray)
+}
+
+usersRouter.delete('/:id', async (request, response) => {
+  const skills = await Skill.find({user: request.params.id})
+  let promiseArray = skills.map(async (s) => {
+    await deleteBattles(s.id)
+    return await s.remove()
+  })
+  await Promise.all(promiseArray)
+
+  await User.findByIdAndRemove(request.params.id)
+  response.status(204).end()
+})
+
 usersRouter.get('/:username', async (request, response) => {
   const user = await User.findOne({username: request.params.username})
 
@@ -50,9 +71,7 @@ usersRouter.get('/:username', async (request, response) => {
 module.exports = usersRouter
 
 /*
-  * Refs
   * mongoose populate()
-  * Token auth -> jsonwebtoken
-  * Limiting creating skills (battles) to logged in users
+  * Limiti creating skills (battles) to logged in users
   * Error handling
 */
