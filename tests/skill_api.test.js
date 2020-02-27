@@ -6,6 +6,11 @@ const Skill = require('../models/skill')
 const Battle = require('../models/battle')
 const User = require('../models/user')
 
+const getToken = async () => {
+  const response = await api.get(`/users/${user.username}`)
+  return response.body.token
+}
+
 const initialSkills = [
   {
     _id: "5a422a851b54a676234d17f7",
@@ -110,6 +115,7 @@ describe('Returning Skills', () => {
 describe('Adding Skills', () => {
 
   test('A valid skill can be added', async () => {
+    const token = await getToken()
     const newSkill = {
       name: "Cooking",
       curr_lvl: "5",
@@ -119,7 +125,7 @@ describe('Adding Skills', () => {
 
     await api
       .post('/skills')
-      .send(newSkill)
+      .send({newSkill, token})
       .expect(201)
       .expect('Content-Type', /application\/json/)
 
@@ -131,6 +137,7 @@ describe('Adding Skills', () => {
   })
 
   test('Created skill has battles array', async () => {
+    const token = await getToken()
     const newSkill = {
       name: "Cooking",
       curr_lvl: "5",
@@ -140,35 +147,72 @@ describe('Adding Skills', () => {
 
     await api
       .post('/skills')
-      .send(newSkill)
+      .send({newSkill, token})
       .then(res => expect(res.body.battles).toEqual([]))
   })
 
-  test('If current XP is missing, it defaults to 0', async () => {
+  test('Created skill has user reference', async () => {
+    /* ! temporary solution ! */
+    // const response = await api.get(`/users/${user.username}`)
+    const token = await getToken()
+
     const newSkill = {
       name: "Cooking",
       curr_lvl: "5",
       max_lvl: 20
     }
 
-    const response = await api.post('/skills').send(newSkill)
+    await api
+      .post('/skills')
+      .send({newSkill, token})
+      .then(res => expect(res.body.user).toEqual(user._id))
+  })
+
+  test('Referenced user is listing new skill', async () => {
+    const token = await getToken()
+    const newSkill = {
+      name: "Cooking",
+      curr_lvl: "5",
+      max_lvl: 20
+    }
+
+    const response = await api.post('/skills').send({newSkill, token})
+
+    const updatedUser = await User.findById(user._id)
+    const skillIds = updatedUser.skills.map(skill => String(skill))
+    expect(skillIds).toContain(response.body.id)
+  })
+
+  test('If current XP is missing, it defaults to 0', async () => {
+    const token = await getToken()
+
+    const newSkill = {
+      name: "Cooking",
+      curr_lvl: "5",
+      max_lvl: 20
+    }
+
+    const response = await api.post('/skills').send({newSkill, token})
     expect(response.body.curr_xp).toBeDefined()
     expect(response.body.curr_xp).toEqual(0)
   })
 
   test('If current level is missing, it defaults to 0', async () => {
+    const token = await getToken()
+
     const newSkill = {
       name: "Cooking",
       max_lvl: 20,
       curr_xp: 70
     }
 
-    const response = await api.post('/skills').send(newSkill)
+    const response = await api.post('/skills').send({newSkill, token})
     expect(response.body.curr_lvl).toBeDefined()
     expect(response.body.curr_lvl).toEqual(0)
   })
 
   test('Missing skill name results in status code 400', async () => {
+    const token = await getToken()
     const newSkill = {
       curr_lvl: "5",
       max_lvl: 20,
@@ -177,11 +221,12 @@ describe('Adding Skills', () => {
 
     await api
       .post('/skills')
-      .send(newSkill)
+      .send({newSkill, token})
       .expect(400)
   })
 
   test('Missing max level results in status code 400', async () => {
+    const token = await getToken()
     const newSkill = {
       name: "Cooking",
       curr_lvl: "5",
@@ -190,7 +235,7 @@ describe('Adding Skills', () => {
 
     await api
       .post('/skills')
-      .send(newSkill)
+      .send({newSkill, token})
       .expect(400)
   })
 

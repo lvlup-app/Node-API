@@ -133,6 +133,23 @@ describe('Adding Users', () => {
 
 })
 
+/* describe('Deleting User', () => {
+  test('User gets succesfully deleted', async () => {
+    const usersAtStart = await usersInDb()
+
+    await api
+      .delete(`${url}/:id`)
+      .expect(204)
+
+    const usersAfterDeletion = await usersInDb()
+    expect(usersAfterDeletion.length).toBe(usersAtStart - 1)
+  })
+  
+  test('When user is deleted, associated skills get deleted', async () => {
+  
+  })
+}) */
+
 afterAll(() => {
   mongoose.connection.close()
 })
