@@ -1,41 +1,21 @@
 const skillsRouter = require('express').Router()
-const Skill = require('../models/skill')
-const Battle = require('../models/battle')
-const User = require('../models/user')
-const jwt = require('jsonwebtoken')
+const helpers = require('../helpers/skills')
 
 skillsRouter.get('/', async (request, response) => {
-  const skills = await Skill.find({})
+  const skills = await helpers.getSkills()
   response.json(skills)
 })
 
 skillsRouter.get('/:id', async (request, response) => {
-  const skill = await Skill.findOne({_id: request.params.id})
+  const skill = await helpers.getSkill(request.params.id)
   response.json(skill)
 })
 
-skillsRouter.post('/', async (request, response) => {
-  let token = request.body.token
-  let skill = request.body.newSkill
-  
+skillsRouter.post('/', async ({body}, response) => {  
+  let {token, newSkill} = body
+
   try{
-    const decodedToken = jwt.verify(token, "secret")
-
-    if(!token || !decodedToken.id){
-      return response.status(401).json({error: 'token missing or invalid'})
-    }
-
-    const user = await User.findById(decodedToken.id)
-  
-    skill.curr_xp ? null : skill.curr_xp = 0
-    skill.curr_lvl ? null : skill.curr_lvl = 0
-  
-    const newSkill = new Skill({...skill, user: user._id})
-    const savedSkill = await newSkill.save()
-
-    user.skills = user.skills.concat(savedSkill._id)
-    await user.save()
-
+    const savedSkill = await helpers.createSkill(token, newSkill)
     response.status(201).json(savedSkill)
   } catch(error){
     error.name === 'ValidationError'
@@ -45,18 +25,13 @@ skillsRouter.post('/', async (request, response) => {
 })
 
 skillsRouter.delete('/:id', async (request, response) => {
-  const battles = await Battle.find({skill: request.params.id})
-  let promiseArray = battles.map(async (b) => await b.remove())
-  await Promise.all(promiseArray)
-
-  await Skill.findByIdAndRemove(request.params.id)
+  await helpers.deleteSkill(request.params.id)
   response.status(204).end()
 })
 
-skillsRouter.put('/:id', async (request, response) => {
+skillsRouter.put('/:id', async ({params, body}, response) => {
   try{
-    const skill = request.body
-    const updatedSkill = await Skill.findByIdAndUpdate(request.params.id, skill, {new: true})
+    const updatedSkill = await helpers.updateSkill(params.id, body)
     response.json(updatedSkill)
   } catch(error){
     error.name === 'ValidationError'
