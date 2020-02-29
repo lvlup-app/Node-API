@@ -22,7 +22,8 @@ const initialSkills = [
     battles: [
       "5f4c614a842d0ee0f388a0b0",
       "5f4c614a842d0ee0f388a0b1"
-    ]
+    ],
+    user: "5b52d425d2eb641aae880f50"
   },
   {
     _id: "5a422aa71b54a676234d17f8",
@@ -30,7 +31,8 @@ const initialSkills = [
     max_lvl: 20,
     curr_lvl: 2,
     curr_xp: 30,
-    __v: 0
+    __v: 0,
+    user: "5b52d425d2eb641aae880f50"
   },
   {
     _id: "5a422b3a1b54a676234d17f9",
@@ -38,7 +40,8 @@ const initialSkills = [
     max_lvl: 15,
     curr_lvl: 1,
     curr_xp: 5,
-    __v: 0
+    __v: 0,
+    user: "5b52d425d2eb641aae880f50"
   }
 ]
 
@@ -61,7 +64,12 @@ const battles = [
 const user = {
   _id: "5b52d425d2eb641aae880f50",
   username: "Peach",
-  password: "Itsame"
+  password: "Itsame",
+  skills: [
+    "5a422a851b54a676234d17f7",
+    "5a422aa71b54a676234d17f8",
+    "5a422b3a1b54a676234d17f9"
+  ]
 }
 
 beforeAll(async () => {
@@ -93,12 +101,20 @@ beforeEach(async () => {
 describe('Returning Skills', () => {
 
   test('Unique identifier property of a skill is named id', async () => {
-    const response = await api.get('/skills')
+    const token = await getToken()
+    const response = await api
+      .get('/skills')
+      .set('Authorization', 'bearer ' + token)
+      
     expect(response.body[0].id).toBeDefined()
   })
   
   test('All skills are returned', async () => {
-    const response = await api.get('/skills')
+    const token = await getToken()
+    const response = await api
+      .get('/skills')
+      .set('Authorization', 'bearer ' + token)
+
     expect(response.body.length).toBe(initialSkills.length)
   })
 
@@ -116,7 +132,8 @@ describe('Adding Skills', () => {
 
   test('A valid skill can be added', async () => {
     const token = await getToken()
-    const newSkill = {
+
+    const skill = {
       name: "Cooking",
       curr_lvl: "5",
       max_lvl: 20,
@@ -125,20 +142,22 @@ describe('Adding Skills', () => {
 
     await api
       .post('/skills')
-      .send({newSkill, token})
+      .send(skill)
+      .set('Authorization', 'bearer ' + token)
       .expect(201)
       .expect('Content-Type', /application\/json/)
 
-    const response = await api.get('/skills')
+    const response = await api.get('/skills').set('Authorization', 'bearer ' + token)
     const skillNames = response.body.map((skill) => skill.name)
 
     expect(response.body.length).toBe(initialSkills.length + 1)
-    expect(skillNames).toContain(newSkill.name)
+    expect(skillNames).toContain(skill.name)
   })
 
   test('Created skill has battles array', async () => {
     const token = await getToken()
-    const newSkill = {
+
+    const skill = {
       name: "Cooking",
       curr_lvl: "5",
       max_lvl: 20,
@@ -147,16 +166,15 @@ describe('Adding Skills', () => {
 
     await api
       .post('/skills')
-      .send({newSkill, token})
+      .send(skill)
+      .set('Authorization', 'bearer ' + token)
       .then(res => expect(res.body.battles).toEqual([]))
   })
 
   test('Created skill has user reference', async () => {
-    /* ! temporary solution ! */
-    // const response = await api.get(`/users/${user.username}`)
     const token = await getToken()
 
-    const newSkill = {
+    const skill = {
       name: "Cooking",
       curr_lvl: "5",
       max_lvl: 20
@@ -164,19 +182,24 @@ describe('Adding Skills', () => {
 
     await api
       .post('/skills')
-      .send({newSkill, token})
+      .send(skill)
+      .set('Authorization', 'bearer ' + token)
       .then(res => expect(res.body.user).toEqual(user._id))
   })
 
   test('Referenced user is listing new skill', async () => {
     const token = await getToken()
-    const newSkill = {
+
+    const skill = {
       name: "Cooking",
       curr_lvl: "5",
       max_lvl: 20
     }
 
-    const response = await api.post('/skills').send({newSkill, token})
+    const response = await api
+      .post('/skills')
+      .send(skill)
+      .set('Authorization', 'bearer ' + token)
 
     const updatedUser = await User.findById(user._id)
     const skillIds = updatedUser.skills.map(skill => String(skill))
@@ -186,13 +209,17 @@ describe('Adding Skills', () => {
   test('If current XP is missing, it defaults to 0', async () => {
     const token = await getToken()
 
-    const newSkill = {
+    const skill = {
       name: "Cooking",
       curr_lvl: "5",
       max_lvl: 20
     }
 
-    const response = await api.post('/skills').send({newSkill, token})
+    const response = await api
+      .post('/skills')
+      .send(skill)
+      .set('Authorization', 'bearer ' + token)
+
     expect(response.body.curr_xp).toBeDefined()
     expect(response.body.curr_xp).toEqual(0)
   })
@@ -200,20 +227,25 @@ describe('Adding Skills', () => {
   test('If current level is missing, it defaults to 0', async () => {
     const token = await getToken()
 
-    const newSkill = {
+    const skill = {
       name: "Cooking",
       max_lvl: 20,
       curr_xp: 70
     }
 
-    const response = await api.post('/skills').send({newSkill, token})
+    const response = await api
+      .post('/skills')
+      .send(skill)
+      .set('Authorization', 'bearer ' + token)
+
     expect(response.body.curr_lvl).toBeDefined()
     expect(response.body.curr_lvl).toEqual(0)
   })
 
   test('Missing skill name results in status code 400', async () => {
     const token = await getToken()
-    const newSkill = {
+
+    const skill = {
       curr_lvl: "5",
       max_lvl: 20,
       curr_xp: 70
@@ -221,13 +253,15 @@ describe('Adding Skills', () => {
 
     await api
       .post('/skills')
-      .send({newSkill, token})
+      .send(skill)
+      .set('Authorization', 'bearer ' + token)
       .expect(400)
   })
 
   test('Missing max level results in status code 400', async () => {
     const token = await getToken()
-    const newSkill = {
+
+    const skill = {
       name: "Cooking",
       curr_lvl: "5",
       curr_xp: 70
@@ -235,7 +269,8 @@ describe('Adding Skills', () => {
 
     await api
       .post('/skills')
-      .send({newSkill, token})
+      .send(skill)
+      .set('Authorization', 'bearer ' + token)
       .expect(400)
   })
 
