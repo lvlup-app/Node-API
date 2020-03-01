@@ -1,31 +1,45 @@
 const Skill = require('../models/skill')
+const User = require('../models/user')
 const Battle = require('../models/battle')
-const { getUser, addSkill } = require('./users')
-
-const getSkills = async () => Skill.find({})
 
 const getSkill = async (id) => {
   const skill = await Skill.findById(id)
   return skill
 }
 
-const createSkill = async (token, skill) => {
-  const user = await getUser(token)
+const getAll = async (userId) => {
+  const skills = await Skill.find({user: userId})
+  return skills
+}
 
+const createSkill = async (skill, userId) => {
   skill.curr_xp ? null : skill.curr_xp = 0
   skill.curr_lvl ? null : skill.curr_lvl = 0
 
-  const newSkill = new Skill({...skill, user: user._id})
+  const newSkill = new Skill({...skill, user: userId})
   const savedSkill = await newSkill.save()
-
-  await addSkill(user, savedSkill._id)
-
+  await _addToUser(userId, savedSkill.id)
   return savedSkill
 }
 
+const _addToUser = async (userId, id) => {
+  const user = await User.findById(userId)
+  user.skills = [...user.skills, id]
+  await user.save()
+}
+
 const deleteSkill = async (id) => {
-  await _deleteBattles(id)
-  await Skill.findByIdAndRemove(id)
+  const skill = await Skill.findById(id)
+  let promises = skill.battles.map(async (battleId) => await Battle.findByIdAndRemove(battleId))
+  await Promise.all(promises)
+  await _removeFromUser(skill.user, id)
+  await skill.remove()
+}
+    
+const _removeFromUser = async (userId, id) => {
+  const user = await User.findById(userId)
+  user.skills = user.skills.filter(skill => String(skill) !== id)
+  await user.save()
 }
 
 const updateSkill = async (id, skill) => {
@@ -33,30 +47,10 @@ const updateSkill = async (id, skill) => {
   return updatedSkill
 }
 
-const addBattlesToSkill = async (id, battleId) => {
-  const skill = await getSkill(id)
-  skill.battles = [...skill.battles, battleId]
-  await skill.save()
-}
-
-const removeBattlesFromSkill = async (id, battleId) => {
-  const skill = await getSkill(id)
-  skill.battles = skill.battles.filter(battle => String(battle) !== battleId)
-  await skill.save()
-}
-
-const _deleteBattles = async (skillId) => {
-  const battles = await Battle.find({skill: skillId})
-  let promiseArray = battles.map(async (battle) => await battle.remove())
-  await Promise.all(promiseArray)
-}
-
 module.exports = {
-  getSkills,
   getSkill,
+  getAll,
   createSkill,
   deleteSkill,
-  updateSkill,
-  addBattlesToSkill,
-  removeBattlesFromSkill
+  updateSkill
 }

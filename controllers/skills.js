@@ -1,21 +1,36 @@
 const skillsRouter = require('express').Router()
-const helpers = require('../helpers/skills')
+const {getSkill, getAll, createSkill, deleteSkill, updateSkill} = require('../helpers/skills')
+const jwt = require('jsonwebtoken')
+
+const getTokenFrom = (request) => {
+  const authorization = request.get('Authorization')
+  
+  if(authorization && authorization.toLowerCase().startsWith('bearer ')){
+    return authorization.substring(7)
+  }
+
+  return null
+}
 
 skillsRouter.get('/', async (request, response) => {
-  const skills = await helpers.getSkills()
+  const token = getTokenFrom(request)
+  const decodedToken = jwt.verify(token, "secret")
+  const skills = await getAll(decodedToken.id)
   response.json(skills)
 })
 
 skillsRouter.get('/:id', async (request, response) => {
-  const skill = await helpers.getSkill(request.params.id)
+  const skill = await getSkill(request.params.id)
   response.json(skill)
 })
 
-skillsRouter.post('/', async ({body}, response) => {  
-  let {token, newSkill} = body
+skillsRouter.post('/', async (request, response) => {
+  const token = getTokenFrom(request)
+  let skill = request.body
 
   try{
-    const savedSkill = await helpers.createSkill(token, newSkill)
+    const decodedToken = jwt.verify(token, "secret")
+    const savedSkill = await createSkill(skill, decodedToken.id)
     response.status(201).json(savedSkill)
   } catch(error){
     error.name === 'ValidationError'
@@ -25,13 +40,13 @@ skillsRouter.post('/', async ({body}, response) => {
 })
 
 skillsRouter.delete('/:id', async (request, response) => {
-  await helpers.deleteSkill(request.params.id)
+  await deleteSkill(request.params.id)
   response.status(204).end()
 })
 
 skillsRouter.put('/:id', async ({params, body}, response) => {
   try{
-    const updatedSkill = await helpers.updateSkill(params.id, body)
+    const updatedSkill = await updateSkill(params.id, body)
     response.json(updatedSkill)
   } catch(error){
     error.name === 'ValidationError'

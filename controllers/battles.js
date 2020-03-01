@@ -1,19 +1,19 @@
 const battlesRouter = require('express').Router()
-const helpers = require('../helpers/battles')
+const {getAll, getBattle, createBattle, deleteBattle } = require('../helpers/battles')
 
 battlesRouter.get('/:skillId/battles', async (request, response) => {
-  const battles = await helpers.getBattles(request.params.skillId)
+  const battles = await getAll(request.params.skillId)
   response.json(battles)
 })
 
 battlesRouter.get('/:skillId/battles/:id', async (request, response) => {
-  const battle = await helpers.getBattle(request.params.id)
+  const battle = await getBattle(request.params.id)
   response.json(battle)
 })
 
 battlesRouter.post('/:skillId/battles/', async (request, response) => {
   try{
-    const savedBattle = await helpers.createBattle(request.body, request.params.skillId)
+    const savedBattle = await createBattle(request.body, request.params.skillId)
     response.status(201).json(savedBattle)
   } catch(error){
     error.name === 'ValidationError'
@@ -23,7 +23,7 @@ battlesRouter.post('/:skillId/battles/', async (request, response) => {
 })
 
 battlesRouter.delete('/:skillId/battles/:id', async ({params}, response) => {
-  await helpers.deleteBattle(params.id, params.skillId)
+  await deleteBattle(params.skillId, params.id)
   response.status(204).end()
 })
 
