@@ -30,21 +30,25 @@ const _addToUser = async (userId, id) => {
 
 const deleteSkill = async (id) => {
   const skill = await Skill.findById(id)
-  let promises = skill.battles.map(async (battleId) => await Battle.findByIdAndRemove(battleId))
-  await Promise.all(promises)
+  await _deleteBattlesOf(skill)
   await _removeFromUser(skill.user, id)
   await skill.remove()
+}
+
+const updateSkill = async (id, skill) => {
+  const updatedSkill = await Skill.findByIdAndUpdate(id, skill, {new: true})
+  return updatedSkill
+}
+
+const _deleteBattlesOf = async (skill) => {
+  let promises = skill.battles.map(async (battleId) => await Battle.findByIdAndRemove(battleId))
+  await Promise.all(promises)
 }
     
 const _removeFromUser = async (userId, id) => {
   const user = await User.findById(userId)
   user.skills = user.skills.filter(skill => String(skill) !== id)
   await user.save()
-}
-
-const updateSkill = async (id, skill) => {
-  const updatedSkill = await Skill.findByIdAndUpdate(id, skill, {new: true})
-  return updatedSkill
 }
 
 module.exports = {

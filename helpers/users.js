@@ -16,13 +16,8 @@ const getUser = async (token) => {
 } */
 
 const createUser = async ({username, password}) => {
-  if(!password){
-    return {error: 'password is required'}
-  }
-
-  if(password.length < 3){
-    return {error: 'password must be at least 3 characters long'}
-  }
+  if(!password) return {error: 'password is required'}
+  if(password.length < 3) return {error: 'password must be at least 3 characters long'}
 
   const saltRounds = 10
   const passwordHash = await bcrypt.hash(password, saltRounds)
