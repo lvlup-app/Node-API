@@ -11,17 +11,24 @@ const url = '/users'
 const user = {
   _id: '5e579c785e943238e38d4b05',
   username: 'Mario', 
-  password: 'peachyPeach' 
+  password: 'peachyPeach',
+  skills: [
+    '5b579c785e943238e38d4b01'
+  ]
 }
 
 const skill = {
   _id: '5b579c785e943238e38d4b01',
   name: 'Jumping',
   max_lvl: 25,
-  user: '5e579c785e943238e38d4b05'
+  user: '5e579c785e943238e38d4b05',
+  battles: [
+    '5a579c785e943238e38d4b03'
+  ]
 }
 
 const battle = {
+  _id: '5a579c785e943238e38d4b03',
   description: 'Jump on blocks',
   xp: 10,
   skill: '5b579c785e943238e38d4b01'
