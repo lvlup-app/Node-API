@@ -89,8 +89,7 @@ describe('Adding Users', () => {
       .send(newUser)
       .expect(400)
       .expect('Content-Type', /application\/json/)
-  
-    // expect(result.body.error).toContain('`username` to be unique')
+      .then((res) => expect(res.body.error).toContain('`username` to be unique'))
   
     const usersAtEnd = await usersInDb()
     expect(usersAtEnd.length).toBe(usersAtStart.length)
@@ -204,5 +203,4 @@ afterAll(() => {
  * Skills can only be created by logged in users
  * Skills can only be accessed by associated user (same for battles)
  * Battles can only be created by right user
- * Login
 */
