@@ -14,7 +14,7 @@ const getTokenFrom = (request) => {
 
 skillsRouter.get('/', async (request, response) => {
   const token = getTokenFrom(request)
-  const decodedToken = jwt.verify(token, "secret")
+  const decodedToken = jwt.verify(token, process.env.SECRET)
   const skills = await getAll(decodedToken.id)
   response.json(skills)
 })
@@ -29,7 +29,7 @@ skillsRouter.post('/', async (request, response) => {
   let skill = request.body
 
   try{
-    const decodedToken = jwt.verify(token, "secret")
+    const decodedToken = jwt.verify(token, process.env.SECRET)
     const savedSkill = await createSkill(skill, decodedToken.id)
     response.status(201).json(savedSkill)
   } catch(error){
