@@ -7,6 +7,7 @@ const bodyParser = require('body-parser')
 const skillsRouter = require('./controllers/skills')
 const battlesRouter = require('./controllers/battles')
 const usersRouter = require('./controllers/users')
+const loginRouter = require('./controllers/login')
 
 mongoose
   .connect(config.MONGO_URL, {
@@ -22,5 +23,6 @@ app.use(bodyParser.json())
 app.use('/skills', skillsRouter)
 app.use('/skills', battlesRouter)
 app.use('/users', usersRouter)
+app.use('/login', loginRouter)
 
 module.exports = app
