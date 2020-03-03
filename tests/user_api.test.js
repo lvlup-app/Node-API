@@ -193,14 +193,3 @@ describe('Deleting User', () => {
 afterAll(() => {
   mongoose.connection.close()
 })
-
-/*
- * Username only consists of permitted characters
- * Error messages
-
- * Schema: no passwordHash, _id to id
- * Token auth
- * Skills can only be created by logged in users
- * Skills can only be accessed by associated user (same for battles)
- * Battles can only be created by right user
-*/

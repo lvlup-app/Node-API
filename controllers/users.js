@@ -39,9 +39,3 @@ usersRouter.get('/:username', async (request, response) => {
 })
 
 module.exports = usersRouter
-
-/*
-  * mongoose populate()
-  * Limiti creating skills (battles) to logged in users
-  * Error handling
-*/

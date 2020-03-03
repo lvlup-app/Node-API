@@ -320,11 +320,3 @@ describe('Modifying Skills', () => {
 afterAll(() => {
   mongoose.connection.close()
 })
-
-
-/* TO DO 
-* type and empty string restrictions
-* test for custom error messages? --> write error handler middleware
-
-* user access
-*/

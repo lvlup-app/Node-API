@@ -188,5 +188,3 @@ describe('Deleting Battles', () => {
 afterAll(() => {
   mongoose.connection.close()
 })
-
-// populate?
