@@ -2,14 +2,10 @@ const mongoose = require('mongoose')
 const supertest = require('supertest')
 const app = require('../app')
 const api = supertest(app)
+const jwt = require('jsonwebtoken')
 const Skill = require('../models/skill')
 const Battle = require('../models/battle')
 const User = require('../models/user')
-
-const getToken = async () => {
-  const response = await api.get(`/users/${user.username}`)
-  return response.body.token
-}
 
 const initialSkills = [
   {
@@ -60,7 +56,6 @@ const battles = [
   }
 ]
 
-// How to "correctly" add user to DB with password hash?
 const user = {
   _id: "5b52d425d2eb641aae880f50",
   username: "Peach",
@@ -70,6 +65,14 @@ const user = {
     "5a422aa71b54a676234d17f8",
     "5a422b3a1b54a676234d17f9"
   ]
+}
+
+const getToken = async () => {
+  return jwt.sign({
+      username: user.username,
+      id: user._id,
+    }, process.env.SECRET
+  )
 }
 
 beforeAll(async () => {
