@@ -13,9 +13,7 @@ const getTokenFrom = (request) => {
 }
 
 skillsRouter.get('/', async (request, response) => {
-  const token = getTokenFrom(request)
-  const decodedToken = jwt.verify(token, process.env.SECRET)
-  const skills = await getAll(decodedToken.id)
+  const skills = await getAll(request.decoded.id)
   response.json(skills)
 })
 

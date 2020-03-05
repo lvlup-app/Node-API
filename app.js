@@ -4,6 +4,7 @@ const app = express()
 const mongoose = require('mongoose')
 const cors = require('cors')
 const bodyParser = require('body-parser')
+const middleware = require('./utils/middleware')
 const skillsRouter = require('./controllers/skills')
 const battlesRouter = require('./controllers/battles')
 const usersRouter = require('./controllers/users')
@@ -20,8 +21,8 @@ mongoose
 
 app.use(cors())
 app.use(bodyParser.json())
-app.use('/skills', skillsRouter)
-app.use('/skills', battlesRouter)
+app.use('/skills', middleware.tokenValidator, skillsRouter)
+app.use('/skills', middleware.tokenValidator, battlesRouter)
 app.use('/users', usersRouter)
 app.use('/login', loginRouter)
 
