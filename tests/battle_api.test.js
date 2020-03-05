@@ -4,6 +4,8 @@ const app = require('../app')
 const api = supertest(app)
 const Battle = require('../models/battle')
 const Skill = require('../models/skill')
+const User = require('../models/user')
+const jwt = require('jsonwebtoken')
 
 const skill = {
   _id: "5a422a851b54a676234d17f7",
@@ -40,12 +42,28 @@ const initialBattles = [
   }
 ]
 
+const user = {
+  _id: "5b52d425d2eb641aae880f50",
+  username: "Peach",
+  password: "Itsame"
+}
+
+const token = jwt.sign({
+  username: user.username,
+  id: user._id,
+  }, process.env.SECRET
+)
+
 const basUrl = `/skills/${skill._id}/battles`
 
 beforeAll(async () => {
   await Skill.deleteMany({})
   const newSkill = new Skill(skill)
   await newSkill.save()
+
+  await User.deleteMany({})
+  const newUser = new User(user)
+  newUser.save()
 })
 
 beforeEach(async () => {
@@ -60,25 +78,39 @@ beforeEach(async () => {
 })
 
 describe('Returning Battles', () => {
+
+  test('Only logged in users can access battles', async () => {
+    await api
+      .get(`/skills/${skill._id}/battles`)
+      .expect(500)
+      // check error message
+  })
   
   test('Unique identifier property of a battle is named id', async () => {
-    const response = await api.get(`/skills/${skill._id}/battles`)
-    expect(response.body[0].id).toBeDefined()
+    await api
+      .get(`/skills/${skill._id}/battles`)
+      .set('Authorization', 'bearer ' + token)
+      .then(res => expect(res.body[0].id).toBeDefined())
   })
 
   test('Battle has skill property', async () => {
-    const response = await api.get(`/skills/${skill._id}/battles`)
-    expect(response.body[0].skill).toBeDefined()
+    await api
+      .get(`/skills/${skill._id}/battles`)
+      .set('Authorization', 'bearer ' + token)
+      .then(res => expect(res.body[0].skill).toBeDefined())
   })
 
   test('All battles are returned', async () => {
-    const response = await api.get(`/skills/${skill._id}/battles`)
-    expect(response.body.length).toBe(initialBattles.length)
+    await api
+      .get(`/skills/${skill._id}/battles`)
+      .set('Authorization', 'bearer ' + token)
+      .then(res => expect(res.body.length).toBe(initialBattles.length))
   })
 
   test('A single battle is returned', async () => {
     await api
       .get(`/skills/${skill._id}/battles/${initialBattles[0]._id}`)
+      .set('Authorization', 'bearer ' + token)
       .expect(200)
       .expect('Content-Type', /application\/json/)
       .then((res) => expect(res.body.id).toEqual(initialBattles[0]._id))
@@ -95,13 +127,14 @@ describe('Adding Battles', () => {
 
     await api
       .post(basUrl)
+      .set('Authorization', 'bearer ' + token)
       .send(newBattle)
       .expect(201)
       .expect('Content-Type', /application\/json/)
       .then(res => expect(res.body.description).toEqual(newBattle.description))
 
-    const response = await api.get(basUrl)
-    expect(response.body.length).toBe(initialBattles.length + 1)
+    const battles = await Battle.find({})
+    expect(battles.length).toBe(initialBattles.length + 1)
   })
 
   test('Battle is referencing right skill', async () => {
@@ -112,6 +145,7 @@ describe('Adding Battles', () => {
 
     await api
       .post(basUrl)
+      .set('Authorization', 'bearer ' + token)
       .send(newBattle)
       .then(res => expect(res.body.skill).toEqual(skill._id))
   })
@@ -122,10 +156,13 @@ describe('Adding Battles', () => {
       xp: 30,
     }
 
-    const response = await api.post(basUrl).send(newBattle)
+    const response = await api
+      .post(basUrl)
+      .set('Authorization', 'bearer ' + token)
+      .send(newBattle)
 
     const updatedSkill = await Skill.findById(skill._id)
-    // !
+
     const battleIds = updatedSkill.battles.map(battle => String(battle))
     expect(battleIds).toContain(response.body.id)
   })
@@ -137,6 +174,7 @@ describe('Adding Battles', () => {
 
     await api
       .post(basUrl)
+      .set('Authorization', 'bearer ' + token)
       .send(newBattle)
       .expect(400)
   })
@@ -148,6 +186,7 @@ describe('Adding Battles', () => {
 
     await api
       .post(basUrl)
+      .set('Authorization', 'bearer ' + token)
       .send(newBattle)
       .expect(400)
   })
@@ -162,6 +201,7 @@ describe('Deleting Battles', () => {
 
     await api
       .delete(`${basUrl}/${battle.id}`)
+      .set('Authorization', 'bearer ' + token)
       .expect(204)
 
     const battlesAfterDeletion = await Battle.find({})
@@ -175,7 +215,7 @@ describe('Deleting Battles', () => {
     const battles = await Battle.find({})
     const battle = battles[0].toJSON()
 
-    await api.delete(`${basUrl}/${battle.id}`)
+    await api.delete(`${basUrl}/${battle.id}`).set('Authorization', 'bearer ' + token)
 
     const updatedSkill = await Skill.findById(battle.skill)
     const battleIds = updatedSkill.battles.map(b => String(b))

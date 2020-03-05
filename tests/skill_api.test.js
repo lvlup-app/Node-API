@@ -38,6 +38,15 @@ const initialSkills = [
     curr_xp: 5,
     __v: 0,
     user: "5b52d425d2eb641aae880f50"
+  },
+  {
+    _id: "5a422a851b54a676234d17f6",
+    name: "Running",
+    max_lvl: 15,
+    curr_lvl: 1,
+    curr_xp: 5,
+    __v: 0,
+    user: "5b52d425d2eb641aae880f55"
   }
 ]
 
@@ -67,13 +76,11 @@ const user = {
   ]
 }
 
-const getToken = async () => {
-  return jwt.sign({
-      username: user.username,
-      id: user._id,
-    }, process.env.SECRET
-  )
-}
+const token = jwt.sign({
+  username: user.username,
+  id: user._id,
+  }, process.env.SECRET
+)
 
 beforeAll(async () => {
   await Battle.deleteMany({})
@@ -103,8 +110,16 @@ beforeEach(async () => {
 
 describe('Returning Skills', () => {
 
+  test('Logged user can only see their own skills', async () => {
+    const response = await api
+      .get('/skills')
+      .set('Authorization', 'bearer ' + token)
+
+      const skillNames = response.body.map((skill) => skill.name)
+      expect(skillNames).not.toContain(initialSkills[initialSkills.length-1].name)
+  })
+
   test('Unique identifier property of a skill is named id', async () => {
-    const token = await getToken()
     const response = await api
       .get('/skills')
       .set('Authorization', 'bearer ' + token)
@@ -113,29 +128,44 @@ describe('Returning Skills', () => {
   })
   
   test('All skills are returned', async () => {
-    const token = await getToken()
     const response = await api
       .get('/skills')
       .set('Authorization', 'bearer ' + token)
 
-    expect(response.body.length).toBe(initialSkills.length)
+    expect(response.body.length).toBe(initialSkills.length - 1)
   })
 
   test('A single skill is returned', async () => {
     await api
       .get(`/skills/${initialSkills[0]._id}`)
+      .set('Authorization', 'bearer ' + token)
       .expect(200)
       .expect('Content-Type', /application\/json/)
       .then((res) => expect(res.body.id).toEqual(initialSkills[0]._id ))
   })
-
 })
 
 describe('Adding Skills', () => {
 
-  test('A valid skill can be added', async () => {
-    const token = await getToken()
+  test('Only logged in users can add skills', async () => {
+    const skill = {
+      name: "Cooking",
+      curr_lvl: "5",
+      max_lvl: 20,
+      curr_xp: 70
+    }
 
+    await api
+      .post('/skills')
+      .send(skill)
+      .expect(500)
+      // check error message
+
+      const skills = await Skill.find({})
+      expect(skills.length).toBe(initialSkills.length)
+  })
+
+  test('A valid skill can be added', async () => {
     const skill = {
       name: "Cooking",
       curr_lvl: "5",
@@ -150,16 +180,14 @@ describe('Adding Skills', () => {
       .expect(201)
       .expect('Content-Type', /application\/json/)
 
-    const response = await api.get('/skills').set('Authorization', 'bearer ' + token)
-    const skillNames = response.body.map((skill) => skill.name)
+    const skills = await Skill.find({})
+    const skillNames = skills.map((skill) => skill.name)
 
-    expect(response.body.length).toBe(initialSkills.length + 1)
+    expect(skills.length).toBe(initialSkills.length + 1)
     expect(skillNames).toContain(skill.name)
   })
 
   test('Created skill has battles array', async () => {
-    const token = await getToken()
-
     const skill = {
       name: "Cooking",
       curr_lvl: "5",
@@ -175,8 +203,6 @@ describe('Adding Skills', () => {
   })
 
   test('Created skill has user reference', async () => {
-    const token = await getToken()
-
     const skill = {
       name: "Cooking",
       curr_lvl: "5",
@@ -191,8 +217,6 @@ describe('Adding Skills', () => {
   })
 
   test('Referenced user is listing new skill', async () => {
-    const token = await getToken()
-
     const skill = {
       name: "Cooking",
       curr_lvl: "5",
@@ -210,8 +234,6 @@ describe('Adding Skills', () => {
   })
 
   test('If current XP is missing, it defaults to 0', async () => {
-    const token = await getToken()
-
     const skill = {
       name: "Cooking",
       curr_lvl: "5",
@@ -228,8 +250,6 @@ describe('Adding Skills', () => {
   })
 
   test('If current level is missing, it defaults to 0', async () => {
-    const token = await getToken()
-
     const skill = {
       name: "Cooking",
       max_lvl: 20,
@@ -246,8 +266,6 @@ describe('Adding Skills', () => {
   })
 
   test('Missing skill name results in status code 400', async () => {
-    const token = await getToken()
-
     const skill = {
       curr_lvl: "5",
       max_lvl: 20,
@@ -262,8 +280,6 @@ describe('Adding Skills', () => {
   })
 
   test('Missing max level results in status code 400', async () => {
-    const token = await getToken()
-
     const skill = {
       name: "Cooking",
       curr_lvl: "5",
@@ -276,7 +292,6 @@ describe('Adding Skills', () => {
       .set('Authorization', 'bearer ' + token)
       .expect(400)
   })
-
 })
 
 describe('Modifying Skills', () => {
@@ -287,6 +302,7 @@ describe('Modifying Skills', () => {
 
     await api
       .delete(`/skills/${skill.id}`)
+      .set('Authorization', 'bearer ' + token)
       .expect(204)
 
     const skillsAfterDeletion = await Skill.find({})
@@ -300,7 +316,9 @@ describe('Modifying Skills', () => {
     const skills = await Skill.find({})
     const skill = skills[0].toJSON()
 
-    await api.delete(`/skills/${skill.id}`)
+    await api
+      .delete(`/skills/${skill.id}`)
+      .set('Authorization', 'bearer ' + token)
 
     const battlesAfterDelete = await Battle.find({})
     expect(battlesAfterDelete.length).toBe(0)
@@ -314,6 +332,7 @@ describe('Modifying Skills', () => {
     await api
       .put(`/skills/${skill.id}`)
       .send(skill)
+      .set('Authorization', 'bearer ' + token)
 
     const updatedSkills = await Skill.find({})
     expect(updatedSkills[0].toJSON().curr_xp).toBe(40)
