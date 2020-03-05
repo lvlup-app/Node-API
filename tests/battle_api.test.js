@@ -82,8 +82,8 @@ describe('Returning Battles', () => {
   test('Only logged in users can access battles', async () => {
     await api
       .get(`/skills/${skill._id}/battles`)
-      .expect(500)
-      // check error message
+      .expect(401)
+      .then(res => expect(res.body.error).toContain("invalid token"))
   })
   
   test('Unique identifier property of a battle is named id', async () => {

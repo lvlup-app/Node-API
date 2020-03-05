@@ -41,6 +41,18 @@ test('Wrong username or password will result in status 401', async () => {
     .then(res => expect(res.body.error).toContain('invalid username or password'))
 })
 
+test('Missing username or password will result in status 400', async () => {
+  const credentials = {
+    username: "Luigi"
+  }
+
+  await api
+    .post('/login')
+    .send(credentials)
+    .expect(400)
+    .then(res => expect(res.body.error).toContain('username or password missing'))
+})
+
 afterAll(() => {
   mongoose.connection.close()
 })

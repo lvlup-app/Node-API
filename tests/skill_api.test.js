@@ -158,8 +158,8 @@ describe('Adding Skills', () => {
     await api
       .post('/skills')
       .send(skill)
-      .expect(500)
-      // check error message
+      .expect(401)
+      .then(res => expect(res.body.error).toContain("invalid token"))
 
       const skills = await Skill.find({})
       expect(skills.length).toBe(initialSkills.length)
