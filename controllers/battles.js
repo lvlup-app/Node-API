@@ -11,14 +11,12 @@ battlesRouter.get('/:skillId/battles/:id', async (request, response) => {
   response.json(battle)
 })
 
-battlesRouter.post('/:skillId/battles/', async (request, response) => {
+battlesRouter.post('/:skillId/battles/', async (request, response, next) => {
   try{
     const savedBattle = await createBattle(request.body, request.params.skillId)
     response.status(201).json(savedBattle)
   } catch(error){
-    error.name === 'ValidationError'
-      ? response.status(400).json({ error: error.message })
-      : console.log(error)
+    next(error)
   }
 })
 

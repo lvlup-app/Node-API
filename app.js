@@ -25,5 +25,6 @@ app.use('/skills', middleware.tokenValidator, skillsRouter)
 app.use('/skills', middleware.tokenValidator, battlesRouter)
 app.use('/users', usersRouter)
 app.use('/login', loginRouter)
+app.use(middleware.errorHandler)
 
 module.exports = app

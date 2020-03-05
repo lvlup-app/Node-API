@@ -1,17 +1,12 @@
 const usersRouter = require('express').Router()
 const { createUser, deleteUser } = require('../helpers/users')
 
-usersRouter.post('/', async (request, response) => {
+usersRouter.post('/', async (request, response, next) => {
   try{
     const savedUser = await createUser(request.body)
-
-    savedUser.error 
-      ? response.status(400).json(savedUser)
-      : response.status(201).json(savedUser)
+    response.status(201).json(savedUser)
   } catch(error){
-    error.name === 'ValidationError'
-      ? response.status(400).json({ error: error.message })
-      : console.log(error)
+    next(error)
   }
 })
 
