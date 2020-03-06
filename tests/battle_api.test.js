@@ -2,273 +2,148 @@ const mongoose = require('mongoose')
 const supertest = require('supertest')
 const app = require('../app')
 const api = supertest(app)
-const Battle = require('../models/battle')
-const Skill = require('../models/skill')
-const User = require('../models/user')
-const jwt = require('jsonwebtoken')
+const testData = require('./test_data')
+const requestHelper = require('./request_helper')
+const db = require('./db_helper')
 
-const skill = {
-  _id: "5a422a851b54a676234d17f7",
-  name: "JavaScript",
-  max_lvl: 20,
-  curr_lvl: 8,
-  curr_xp: 0,
-  __v: 0,
-  battles: [
-    "5e4c614a842d0ee0f388a0b0",
-    "5e4c614a842d0ee0f388a0b1",
-    "5e4c614a842d0ee0f388a0b2"
-  ],
-  user: "5b52d425d2eb641aae880f50"
-}
+const { skills, battles, user, token, wrongToken } = testData
+const skill = skills[0]
 
-const initialBattles = [
-  {
-    _id: "5e4c614a842d0ee0f388a0b0",
-    description: "Coding challenge",
-    xp: 20,
-    skill: "5a422a851b54a676234d17f7"
-  },
-  {
-    _id: "5e4c614a842d0ee0f388a0b1",
-    description: "Spring tutorial",
-    xp: 50,
-    skill: "5a422a851b54a676234d17f7"
-  },
-  {
-    _id: "5e4c614a842d0ee0f388a0b2",
-    description: "30 min practice",
-    xp: 10,
-    skill: "5a422a851b54a676234d17f7"
-  }
-]
-
-const user = {
-  _id: "5b52d425d2eb641aae880f50",
-  username: "Peach",
-  password: "Itsame"
-}
-
-const token = jwt.sign({
-  username: user.username,
-  id: user._id,
-  }, process.env.SECRET
-)
-
-const wrongToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6Ik1hcmlvbiIsImlkIjoiNWU2MWYzYzJjYWRiZWE4MTRhMzFjNTZkIiwiaWF0IjoxNTgzNDc3NzA0fQ.dJeUKAWZ9QN7hmphjG5h21Z4WLuOCmQ56E6b_mYQGMk"
-
-const basUrl = `/skills/${skill._id}/battles`
+const baseUrl = `/skills/${skill._id}/battles`
+const _ = requestHelper(api, baseUrl)
 
 beforeAll(async () => {
-  await Skill.deleteMany({})
-  const newSkill = new Skill(skill)
-  await newSkill.save()
-
-  await User.deleteMany({})
-  const newUser = new User(user)
-  newUser.save()
+  await db.initOne(skill, "Skill")
+  await db.initOne(user, "User")
 })
 
 beforeEach(async () => {
-  await Battle.deleteMany({})
-
-  let promiseArray = initialBattles.map(async (battle) => { 
-    let newBattle = new Battle(battle)
-    await newBattle.save()
-  })
-
-  await Promise.all(promiseArray)
+  await db.initAll(battles, "Battle")
 })
 
 describe('Returning Battles', () => {
 
   test('Only logged in users can access battles', async () => {
-    await api
-      .get(`/skills/${skill._id}/battles`)
-      .expect(401)
+    await _.getAll(null, 401)
       .then(res => expect(res.body.error).toContain("invalid token"))
   })
   
   test('Only authorized user can access battles', async () => {
-    await api
-      .get(`/skills/${skill._id}/battles`)
-      .set('Authorization', 'bearer ' + wrongToken)
-      .expect(401)
+    await _.getAll(wrongToken, 401)
       .then(res => expect(res.body.error).toContain("Access denied"))
   })
 
   test('Unique identifier property of a battle is named id', async () => {
-    await api
-      .get(`/skills/${skill._id}/battles`)
-      .set('Authorization', 'bearer ' + token)
+    await _.getAll(token, 200)
       .then(res => expect(res.body[0].id).toBeDefined())
   })
 
   test('Battle has skill property', async () => {
-    await api
-      .get(`/skills/${skill._id}/battles`)
-      .set('Authorization', 'bearer ' + token)
+    await _.getAll(token, 200)
       .then(res => expect(res.body[0].skill).toBeDefined())
   })
 
   test('All battles are returned', async () => {
-    await api
-      .get(`/skills/${skill._id}/battles`)
-      .set('Authorization', 'bearer ' + token)
-      .then(res => expect(res.body.length).toBe(initialBattles.length))
+    await _.getAll(token, 200)
+      .then(res => expect(res.body.length).toBe(battles.length))
   })
 
   test('Battle can only be shown for authorized user', async () => {
-    await api
-      .get(`/skills/${skill._id}/battles/${initialBattles[0]._id}`)
-      .set('Authorization', 'bearer ' + wrongToken)
-      .expect(401)
+    await _.getOne(battles[0]._id, wrongToken, 401)
       .then((res) => expect(res.body.error).toContain("Access denied"))
   })
 
   test('A single battle is returned', async () => {
-    await api
-      .get(`/skills/${skill._id}/battles/${initialBattles[0]._id}`)
-      .set('Authorization', 'bearer ' + token)
-      .expect(200)
-      .expect('Content-Type', /application\/json/)
-      .then((res) => expect(res.body.id).toEqual(initialBattles[0]._id))
+    await _.getOne(battles[0]._id, token, 200)
+      .then((res) => expect(res.body.id).toEqual(battles[0]._id))
   })
 })
 
 describe('Adding Battles', () => {
+  const validBattle = {
+    description: "Bug hunting",
+    xp: 30,
+  }
+
   test('A valid battle can be added', async () => {
-    const newBattle = {
-      description: "Bug hunting",
-      xp: 30,
-    }
+    await _.postOne(token, validBattle, 201)
+      .then(res => expect(res.body.description).toEqual(validBattle.description))
 
-    await api
-      .post(basUrl)
-      .set('Authorization', 'bearer ' + token)
-      .send(newBattle)
-      .expect(201)
-      .expect('Content-Type', /application\/json/)
-      .then(res => expect(res.body.description).toEqual(newBattle.description))
-
-    const battles = await Battle.find({})
-    expect(battles.length).toBe(initialBattles.length + 1)
+    const battlesAfterCreation = await db.getDocuments("Battle")
+    expect(battlesAfterCreation.length).toBe(battles.length + 1)
   })
 
   test('Battles can only be added by authorized user', async () => {
-    const newBattle = {
-      description: "Bug hunting",
-      xp: 30,
-    }
-
-    await api
-      .post(basUrl)
-      .set('Authorization', 'bearer ' + wrongToken)
-      .send(newBattle)
-      .expect(401)
+    await _.postOne(wrongToken, validBattle, 401)
       .then(res => expect(res.body.error).toContain("Access denied"))
 
-    const battles = await Battle.find({})
-    expect(battles.length).toBe(initialBattles.length)
+    const battlesAfterRequest = await db.getDocuments("Battle")
+    expect(battlesAfterRequest.length).toBe(battles.length)
   })
 
   test('Battle is referencing right skill', async () => {
-    const newBattle = {
-      description: "Building a project",
-      xp: 80
-    }
-
-    await api
-      .post(basUrl)
-      .set('Authorization', 'bearer ' + token)
-      .send(newBattle)
+    await _.postOne(token, validBattle, 201)
       .then(res => expect(res.body.skill).toEqual(skill._id))
   })
 
   test('Referenced skill is listing new battle', async () => {
-    const newBattle = {
-      description: "Bug hunting",
-      xp: 30,
-    }
+    const response = await _.postOne(token, validBattle, 201)
 
-    const response = await api
-      .post(basUrl)
-      .set('Authorization', 'bearer ' + token)
-      .send(newBattle)
-
-    const updatedSkill = await Skill.findById(skill._id)
-
-    const battleIds = updatedSkill.battles.map(battle => String(battle))
-    expect(battleIds).toContain(response.body.id)
+    const updatedSkill = await db.getDocument(skill._id, "Skill")
+    expect(updatedSkill.battles).toContain(response.body.id)
   })
 
   test('Missing description results in status code 400', async () => {
-    const newBattle = {
+    const battle = {
       xp: 30
     }
 
-    await api
-      .post(basUrl)
-      .set('Authorization', 'bearer ' + token)
-      .send(newBattle)
-      .expect(400)
+    await _.postOne(token, battle, 400)
   })
 
   test('Missing xp results in status code 400', async () => {
-    const newBattle = {
+    const battle = {
       description: "Bug hunting"
     }
 
-    await api
-      .post(basUrl)
-      .set('Authorization', 'bearer ' + token)
-      .send(newBattle)
-      .expect(400)
+    await _.postOne(token, battle, 400)
   })
 })
 
 describe('Deleting Battles', () => {
 
   test('Battles can only be deleted by authorized user', async () => {
-    const battles = await Battle.find({})
-    const battle = battles[0].toJSON()
+    const battles = await db.getDocuments("Battle")
+    const battle = battles[0]
 
-    await api
-      .delete(`${basUrl}/${battle.id}`)
-      .set('Authorization', 'bearer ' + wrongToken)
-      .expect(401)
+    await _.deleteOne(battle.id, wrongToken, 401)
       .then(res => expect(res.body.error).toContain("Access denied"))
 
-    const battlesAfterDeletion = await Battle.find({})
+    const battlesAfterDeletion = await db.getDocuments("Battle")
     expect(battlesAfterDeletion.length).toBe(battles.length)
   })
 
   test('Battle gets succesfully deleted', async () => {
-    const battles = await Battle.find({})
-    const battle = battles[0].toJSON()
+    const battles = await db.getDocuments("Battle")
+    const battle = battles[0]
 
-    await api
-      .delete(`${basUrl}/${battle.id}`)
-      .set('Authorization', 'bearer ' + token)
-      .expect(204)
+    await _.deleteOne(battle.id, token, 204)
 
-    const battlesAfterDeletion = await Battle.find({})
-    const ids = battlesAfterDeletion.map(battle => battle.toJSON().id)
+    const battlesAfterDeletion = await db.getDocuments("Battle")
+    const ids = battlesAfterDeletion.map(battle => battle.id)
 
     expect(battlesAfterDeletion.length).toBe(battles.length - 1)
     expect(ids).not.toContain(battle.id)
   })
 
   test('Battle reference in associated skill gets deleted', async () => {
-    const battles = await Battle.find({})
-    const battle = battles[0].toJSON()
+    const battles = await db.getDocuments("Battle")
+    const battle = battles[0]
 
-    await api.delete(`${basUrl}/${battle.id}`).set('Authorization', 'bearer ' + token)
+    await _.deleteOne(battle.id, token, 204)
 
-    const updatedSkill = await Skill.findById(battle.skill)
-    const battleIds = updatedSkill.battles.map(b => String(b))
-
-    expect(battleIds).not.toContain(battle.id)
+    const updatedSkill = await db.getDocument(battle.skill, "Skill")
+    expect(updatedSkill.battles).not.toContain(battle.id)
   })
 })
 

@@ -2,61 +2,22 @@ const mongoose = require('mongoose')
 const supertest = require('supertest')
 const app = require('../app')
 const api = supertest(app)
-const User = require('../models/user')
-const Skill = require('../models/skill')
-const Battle = require('../models/battle')
+const testData = require('./test_data')
+const db = require('./db_helper')
 
+const {user, skills, battles} = testData
 const url = '/users'
 
-const user = {
-  _id: '5e579c785e943238e38d4b05',
-  username: 'Mario', 
-  password: 'peachyPeach',
-  skills: [
-    '5b579c785e943238e38d4b01'
-  ]
-}
-
-const skill = {
-  _id: '5b579c785e943238e38d4b01',
-  name: 'Jumping',
-  max_lvl: 25,
-  user: '5e579c785e943238e38d4b05',
-  battles: [
-    '5a579c785e943238e38d4b03'
-  ]
-}
-
-const battle = {
-  _id: '5a579c785e943238e38d4b03',
-  description: 'Jump on blocks',
-  xp: 10,
-  skill: '5b579c785e943238e38d4b01'
-}
-
-const usersInDb = async () => {
-  const users = await User.find({})
-  return users.map(u => u.toJSON())
-}
-
 beforeEach(async () => {
-  await User.deleteMany({})
-  const newUser = new User(user)
-  await newUser.save()
-
-  await Skill.deleteMany({})
-  const newSkill = new Skill(skill)
-  await newSkill.save()
-
-  await Battle.deleteMany({})
-  const newBattle = new Battle(battle)
-  await newBattle.save()
+  await db.initOne(user, "User")
+  await db.initAll(skills, "Skill")
+  await db.initAll(battles, "Battle")
 })
 
 describe('Adding Users', () => {
 
   test('Valid user gets succesfully created', async () => {
-    const usersAtStart = await usersInDb()
+    const usersAtStart = await db.getDocuments("User")
   
     const newUser = {
       username: 'Luigi',
@@ -69,7 +30,7 @@ describe('Adding Users', () => {
       .expect(201)
       .expect('Content-Type', /application\/json/)
   
-    const usersAtEnd = await usersInDb()
+    const usersAtEnd = await db.getDocuments("User")
     expect(usersAtEnd.length).toBe(usersAtStart.length + 1)
   
     const usernames = usersAtEnd.map(u => u.username)
@@ -77,11 +38,11 @@ describe('Adding Users', () => {
   })
   
   test('Creation fails when username is already taken', async () => {
-    const usersAtStart = await usersInDb()
+    const usersAtStart = await db.getDocuments("User")
   
     const newUser = {
-      username: 'Mario', 
-      password: '1234'
+      username: "Peach",
+      password: "Itsame"
     }
   
     await api
@@ -91,12 +52,12 @@ describe('Adding Users', () => {
       .expect('Content-Type', /application\/json/)
       .then((res) => expect(res.body.error).toContain('`username` to be unique'))
   
-    const usersAtEnd = await usersInDb()
+    const usersAtEnd = await db.getDocuments("User")
     expect(usersAtEnd.length).toBe(usersAtStart.length)
   })
   
   test('Creation fails if username or password is missing', async () => {
-    const usersAtStart = await usersInDb()
+    const usersAtStart = await db.getDocuments("User")
   
     const missingUsername = {
       password: "Yoshi1234"
@@ -118,12 +79,12 @@ describe('Adding Users', () => {
       .expect(400)
       .then((res) => expect(res.body.error).toContain("password is required"))
   
-    const usersAtEnd = await usersInDb()
+    const usersAtEnd = await db.getDocuments("User")
     expect(usersAtEnd.length).toBe(usersAtStart.length)
   })
   
   test('Creation fails if username or password is shorter than 3 characters', async () => {
-    const usersAtStart = await usersInDb()
+    const usersAtStart = await db.getDocuments("User")
   
     const shortUsername = {
       username: "Lu",
@@ -147,7 +108,7 @@ describe('Adding Users', () => {
       .expect(400)
       .then((res) => expect(res.body.error).toContain("password must be at least 3 characters"))
   
-    const usersAtEnd = await usersInDb()
+    const usersAtEnd = await db.getDocuments("User")
     expect(usersAtEnd.length).toBe(usersAtStart.length)
   })
   
@@ -166,26 +127,27 @@ describe('Adding Users', () => {
 })
 
 describe('Deleting User', () => {
+
   test('User gets succesfully deleted', async () => {
-    const usersAtStart = await usersInDb()
+    const usersAtStart = await db.getDocuments("User")
 
     await api
       .delete(`${url}/${usersAtStart[0].id}`)
       .expect(204)
 
-    const usersAfterDeletion = await usersInDb()
+    const usersAfterDeletion = await db.getDocuments("User")
     expect(usersAfterDeletion.length).toBe(usersAtStart.length - 1)
   })
   
   test('When user is deleted, associated skills and battles get deleted', async () => {
-    const users = await usersInDb()
+    const users = await db.getDocuments("User")
 
     await api.delete(`${url}/${users[0].id}`)
 
-    const skillsAfterDelete = await Skill.find({user: users[0].id})
+    const skillsAfterDelete = await db.getDocumentsBy({user: users[0].id}, "Skill")
     expect(skillsAfterDelete.length).toBe(0)
 
-    const battles = await Battle.find({skill: skill._id})
+    const battles = await db.getDocumentsBy({skill: skills[0]._id}, "Battle")
     expect(battles.length).toBe(0)
   })
 })

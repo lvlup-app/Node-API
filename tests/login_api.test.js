@@ -5,6 +5,8 @@ const api = supertest(app)
 const bcrypt = require('bcrypt')
 const User = require('../models/user')
 
+const url = '/login'
+
 const user = {
   username: 'Luigi', 
   password: 'Yoshi123'
@@ -22,7 +24,7 @@ beforeEach(async () => {
 
 test('Valid user can succesfully login', async () => {
   await api
-    .post('/login')
+    .post(url)
     .send(user)
     .expect(200)
     .then(res => expect(res.body.token).toBeDefined())
@@ -35,7 +37,7 @@ test('Wrong username or password will result in status 401', async () => {
   }
 
   await api
-    .post('/login')
+    .post(url)
     .send(credentials)
     .expect(401)
     .then(res => expect(res.body.error).toContain('invalid username or password'))
@@ -47,7 +49,7 @@ test('Missing username or password will result in status 400', async () => {
   }
 
   await api
-    .post('/login')
+    .post(url)
     .send(credentials)
     .expect(400)
     .then(res => expect(res.body.error).toContain('username or password missing'))
