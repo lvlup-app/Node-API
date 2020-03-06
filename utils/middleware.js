@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken')
+const Skill = require('../models/skill')
 
 const tokenValidator = (request, response, next) => {
   const authorization = request.get('Authorization')
@@ -18,6 +19,18 @@ const tokenValidator = (request, response, next) => {
   next()
 }
 
+const checkAuthorization = async (request, response, next) => {
+  const skill = await Skill.findById(request.params.id)
+  if(!(skill.user == request.decoded.id)){
+    return errorHandler({
+      name: "AuthorizationError",
+      message: "Access denied"
+    }, request, response, next)
+  }
+
+  next()
+}
+
 const errorHandler = (error, request, response, next) => {
   switch(error.name){
     case "ValidationError":
@@ -33,5 +46,6 @@ const errorHandler = (error, request, response, next) => {
 
 module.exports = {
   tokenValidator,
-  errorHandler
+  errorHandler,
+  checkAuthorization
 }

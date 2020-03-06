@@ -21,7 +21,9 @@ mongoose
 
 app.use(cors())
 app.use(bodyParser.json())
-app.use('/skills', middleware.tokenValidator, skillsRouter)
+app.use('/skills', middleware.tokenValidator)
+app.use('/skills/:id', middleware.checkAuthorization)
+app.use('/skills', skillsRouter)
 app.use('/skills', middleware.tokenValidator, battlesRouter)
 app.use('/users', usersRouter)
 app.use('/login', loginRouter)
