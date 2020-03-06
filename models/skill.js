@@ -26,6 +26,7 @@ const skillSchema = new mongoose.Schema({
 skillSchema.set('toJSON', {
   transform: (document, returnedObject) => {
     returnedObject.id = returnedObject._id.toString()
+    returnedObject.battles = returnedObject.battles.map(battle => battle.toString())
     delete returnedObject._id
     delete returnedObject.__v
   }
