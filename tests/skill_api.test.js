@@ -69,9 +69,9 @@ describe('Adding Skills', () => {
     await _.postOne(token, validSkill, 201)
 
     const skillsAfterCreation = await db.getDocuments("Skill")
-    const skillNames = skillsAfterCreation.map((skill) => skill.name)
-
     expect(skillsAfterCreation.length).toBe(skills.length + 1)
+
+    const skillNames = skillsAfterCreation.map((skill) => skill.name)
     expect(skillNames).toContain(validSkill.name)
   })
 
