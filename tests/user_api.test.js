@@ -4,9 +4,11 @@ const app = require('../app')
 const api = supertest(app)
 const testData = require('./test_data')
 const db = require('./db_helper')
+const requestHelper = require('./request_helper')
 
 const {user, skills, battles} = testData
 const url = '/users'
+const _ = requestHelper(api, url)
 
 beforeEach(async () => {
   await db.initOne(user, "User")
@@ -15,41 +17,31 @@ beforeEach(async () => {
 })
 
 describe('Adding Users', () => {
+  const validUser = {
+    username: 'Luigi',
+    password: 'Yoshi123',
+  }
 
   test('Valid user gets succesfully created', async () => {
     const usersAtStart = await db.getDocuments("User")
-  
-    const newUser = {
-      username: 'Luigi',
-      password: 'Yoshi123',
-    }
-  
-    await api
-      .post(url)
-      .send(newUser)
-      .expect(201)
-      .expect('Content-Type', /application\/json/)
+    await _.postOne(null, validUser, 201)
   
     const usersAtEnd = await db.getDocuments("User")
     expect(usersAtEnd.length).toBe(usersAtStart.length + 1)
   
     const usernames = usersAtEnd.map(u => u.username)
-    expect(usernames).toContain(newUser.username)
+    expect(usernames).toContain(validUser.username)
   })
   
   test('Creation fails when username is already taken', async () => {
     const usersAtStart = await db.getDocuments("User")
   
-    const newUser = {
+    const user = {
       username: "Peach",
       password: "Itsame"
     }
   
-    await api
-      .post(url)
-      .send(newUser)
-      .expect(400)
-      .expect('Content-Type', /application\/json/)
+    await _.postOne(null, user, 400)
       .then((res) => expect(res.body.error).toContain('`username` to be unique'))
   
     const usersAtEnd = await db.getDocuments("User")
@@ -67,16 +59,10 @@ describe('Adding Users', () => {
       username: "Lugi"
     }
   
-    await api
-      .post(url)
-      .send(missingUsername)
-      .expect(400)
+    await _.postOne(null, missingUsername, 400)
       .then((res) => expect(res.body.error).toContain("`username` is required"))
   
-    await api
-      .post(url)
-      .send(missingPassword)
-      .expect(400)
+    await _.postOne(null, missingPassword, 400)
       .then((res) => expect(res.body.error).toContain("password is required"))
   
     const usersAtEnd = await db.getDocuments("User")
@@ -96,16 +82,10 @@ describe('Adding Users', () => {
       password: "1"
     }
   
-    await api
-      .post(url)
-      .send(shortUsername)
-      .expect(400)
+    await _.postOne(null, shortUsername, 400)
       .then((res) => expect(res.body.error).toContain("is shorter than the minimum allowed"))
   
-    await api
-      .post(url)
-      .send(shortPassword)
-      .expect(400)
+    await _.postOne(null, shortPassword, 400)
       .then((res) => expect(res.body.error).toContain("password must be at least 3 characters"))
   
     const usersAtEnd = await db.getDocuments("User")
@@ -113,14 +93,7 @@ describe('Adding Users', () => {
   })
   
   test('Created user has skills array', async () => {
-    const newUser = {
-      username: "Luigi",
-      password: "Yoshi123"
-    }
-  
-    await api
-      .post(url)
-      .send(newUser)
+    await _.postOne(null, validUser, 201)
       .then((res) => expect(res.body.skills).toEqual([]))
   })
 
@@ -131,20 +104,18 @@ describe('Deleting User', () => {
   test('User gets succesfully deleted', async () => {
     const usersAtStart = await db.getDocuments("User")
 
-    await api
-      .delete(`${url}/${usersAtStart[0].id}`)
-      .expect(204)
+    await _.deleteOne(usersAtStart[0].id, null, 204)
 
     const usersAfterDeletion = await db.getDocuments("User")
     expect(usersAfterDeletion.length).toBe(usersAtStart.length - 1)
   })
   
   test('When user is deleted, associated skills and battles get deleted', async () => {
-    const users = await db.getDocuments("User")
+    const usersAtStart = await db.getDocuments("User")
 
-    await api.delete(`${url}/${users[0].id}`)
+    await _.deleteOne(usersAtStart[0].id, null, 204)
 
-    const skillsAfterDelete = await db.getDocumentsBy({user: users[0].id}, "Skill")
+    const skillsAfterDelete = await db.getDocumentsBy({user: usersAtStart[0].id}, "Skill")
     expect(skillsAfterDelete.length).toBe(0)
 
     const battles = await db.getDocumentsBy({skill: skills[0]._id}, "Battle")
