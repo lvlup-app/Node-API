@@ -82,6 +82,8 @@ const token = jwt.sign({
   }, process.env.SECRET
 )
 
+const wrongToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6Ik1hcmlvbiIsImlkIjoiNWU2MWYzYzJjYWRiZWE4MTRhMzFjNTZkIiwiaWF0IjoxNTgzNDc3NzA0fQ.dJeUKAWZ9QN7hmphjG5h21Z4WLuOCmQ56E6b_mYQGMk"
+
 beforeAll(async () => {
   await Battle.deleteMany({})
 
@@ -133,6 +135,14 @@ describe('Returning Skills', () => {
       .set('Authorization', 'bearer ' + token)
 
     expect(response.body.length).toBe(initialSkills.length - 1)
+  })
+
+  test('Only the creator of a skill can access it', async () => {
+    await api
+      .get(`/skills/${initialSkills[0]._id}`)
+      .set('Authorization', 'bearer ' + wrongToken)
+      .expect(401)
+      .then(res => expect(res.body.error).toContain("Access denied"))
   })
 
   test('A single skill is returned', async () => {
@@ -296,6 +306,20 @@ describe('Adding Skills', () => {
 
 describe('Modifying Skills', () => {
 
+  test('Only creator of skill can delete it', async () => {
+    const skills = await Skill.find({})
+    const skill = skills[0].toJSON()
+
+    await api
+      .delete(`/skills/${skill.id}`)
+      .set('Authorization', 'bearer ' + wrongToken)
+      .expect(401)
+      .then(res => expect(res.body.error).toContain("Access denied"))
+
+    const skillsAfterDeletion = await Skill.find({})
+    expect(skillsAfterDeletion.length).toBe(skills.length)
+  })
+
   test('Skill gets succesfully deleted', async () => {
     const skills = await Skill.find({})
     const skill = skills[0].toJSON()
@@ -322,6 +346,23 @@ describe('Modifying Skills', () => {
 
     const battlesAfterDelete = await Battle.find({})
     expect(battlesAfterDelete.length).toBe(0)
+  })
+
+  test('Skill can only be updated by its creator', async () => {
+    const skills = await Skill.find({})
+    const skill = skills[0].toJSON()
+    const originalXp = skill.curr_xp
+    skill.curr_xp = 40
+
+    await api
+      .put(`/skills/${skill.id}`)
+      .send(skill)
+      .set('Authorization', 'bearer ' + wrongToken)
+      .expect(401)
+      .then(res => expect(res.body.error).toContain("Access denied"))
+
+    const updatedSkills = await Skill.find({})
+    expect(updatedSkills[0].toJSON().curr_xp).toBe(originalXp)
   })
 
   test('Skill gets succesfully updated', async () => {

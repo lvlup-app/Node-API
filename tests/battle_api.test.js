@@ -18,7 +18,8 @@ const skill = {
     "5e4c614a842d0ee0f388a0b0",
     "5e4c614a842d0ee0f388a0b1",
     "5e4c614a842d0ee0f388a0b2"
-  ]
+  ],
+  user: "5b52d425d2eb641aae880f50"
 }
 
 const initialBattles = [
@@ -54,6 +55,8 @@ const token = jwt.sign({
   }, process.env.SECRET
 )
 
+const wrongToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6Ik1hcmlvbiIsImlkIjoiNWU2MWYzYzJjYWRiZWE4MTRhMzFjNTZkIiwiaWF0IjoxNTgzNDc3NzA0fQ.dJeUKAWZ9QN7hmphjG5h21Z4WLuOCmQ56E6b_mYQGMk"
+
 const basUrl = `/skills/${skill._id}/battles`
 
 beforeAll(async () => {
@@ -86,6 +89,14 @@ describe('Returning Battles', () => {
       .then(res => expect(res.body.error).toContain("invalid token"))
   })
   
+  test('Only authorized user can access battles', async () => {
+    await api
+      .get(`/skills/${skill._id}/battles`)
+      .set('Authorization', 'bearer ' + wrongToken)
+      .expect(401)
+      .then(res => expect(res.body.error).toContain("Access denied"))
+  })
+
   test('Unique identifier property of a battle is named id', async () => {
     await api
       .get(`/skills/${skill._id}/battles`)
@@ -107,6 +118,14 @@ describe('Returning Battles', () => {
       .then(res => expect(res.body.length).toBe(initialBattles.length))
   })
 
+  test('Battle can only be shown for authorized user', async () => {
+    await api
+      .get(`/skills/${skill._id}/battles/${initialBattles[0]._id}`)
+      .set('Authorization', 'bearer ' + wrongToken)
+      .expect(401)
+      .then((res) => expect(res.body.error).toContain("Access denied"))
+  })
+
   test('A single battle is returned', async () => {
     await api
       .get(`/skills/${skill._id}/battles/${initialBattles[0]._id}`)
@@ -118,7 +137,6 @@ describe('Returning Battles', () => {
 })
 
 describe('Adding Battles', () => {
-
   test('A valid battle can be added', async () => {
     const newBattle = {
       description: "Bug hunting",
@@ -135,6 +153,23 @@ describe('Adding Battles', () => {
 
     const battles = await Battle.find({})
     expect(battles.length).toBe(initialBattles.length + 1)
+  })
+
+  test('Battles can only be added by authorized user', async () => {
+    const newBattle = {
+      description: "Bug hunting",
+      xp: 30,
+    }
+
+    await api
+      .post(basUrl)
+      .set('Authorization', 'bearer ' + wrongToken)
+      .send(newBattle)
+      .expect(401)
+      .then(res => expect(res.body.error).toContain("Access denied"))
+
+    const battles = await Battle.find({})
+    expect(battles.length).toBe(initialBattles.length)
   })
 
   test('Battle is referencing right skill', async () => {
@@ -190,10 +225,23 @@ describe('Adding Battles', () => {
       .send(newBattle)
       .expect(400)
   })
-
 })
 
 describe('Deleting Battles', () => {
+
+  test('Battles can only be deleted by authorized user', async () => {
+    const battles = await Battle.find({})
+    const battle = battles[0].toJSON()
+
+    await api
+      .delete(`${basUrl}/${battle.id}`)
+      .set('Authorization', 'bearer ' + wrongToken)
+      .expect(401)
+      .then(res => expect(res.body.error).toContain("Access denied"))
+
+    const battlesAfterDeletion = await Battle.find({})
+    expect(battlesAfterDeletion.length).toBe(battles.length)
+  })
 
   test('Battle gets succesfully deleted', async () => {
     const battles = await Battle.find({})
@@ -222,7 +270,6 @@ describe('Deleting Battles', () => {
 
     expect(battleIds).not.toContain(battle.id)
   })
-
 })
 
 afterAll(() => {
